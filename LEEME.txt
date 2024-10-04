@@ -1,0 +1,10 @@
+NOMBRE DEL PROYECTO: rhumanos
+
+ARCHIVOS A MODIFICAR:
+    - /frontend/vue.config.js
+        - proxy: ruta de la ubicacion directa a la carpeta public del proyecto
+        - publicPath: ruta de la carpeta public segun nombre del proyecto
+    
+    - /frontend/src/main.js
+        - variable window.base_url -> editar la ruta segun corresponda al nombre del proyecto
+        - document.title           -> cambiar por el titulo que corresponda a la pagina

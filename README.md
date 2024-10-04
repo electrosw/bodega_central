@@ -1,2 +1,0 @@
-# bodega_central
-

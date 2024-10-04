@@ -1,0 +1,5 @@
+.git
+.gitignore
+frontend
+produccion.sh
+excluye_rsync.txt

@@ -1,0 +1,99 @@
+.principal {
+  height:100%;
+  width:100%;
+  margin:0;
+  display: flex;
+  flex-direction: column;
+  }
+
+  /* Enter and leave animations can use different */
+  /* durations and timing functions.              */
+  .slide-fade-enter-active {
+  transition: all .3s ease;
+  }
+  .slide-fade-leave-active {
+  transition: all .8s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+  }
+  .slide-fade-enter, .slide-fade-leave-to
+  /* .slide-fade-leave-active below version 2.1.8 */ {
+  transform: translateX(10px);
+  opacity: 0;
+  }
+
+  .logos{
+  filter: grayscale(100%) !important; 
+  opacity:0.5;
+  width: 150px;
+  }
+
+  .alto {
+  height: 50px;
+  }
+
+  .fondo-lg {
+  min-height: 100% !important;
+  min-width: 1280px !important;
+  width: 100% !important;
+  height: auto !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  -webkit-background-size: cover !important;
+  -moz-background-size: cover !important;
+  -o-background-size: cover !important;
+  background-size: cover !important;
+  }
+
+  .fondo-sm {
+  -webkit-background-size: cover !important;
+  -moz-background-size: cover !important;
+  -o-background-size: cover !important;
+  background-size: cover !important;
+  width: 100% !important;
+  text-align: center !important;
+  }
+
+  .fondo1 {
+  background: linear-gradient(rgba(0%,0%,0%,.2), rgba(0%,0%,0%,.3)), url('./img/fondo1.jpg') no-repeat center;
+  }
+
+  input:focus, input.form-control:focus {
+      outline:none !important;
+      outline-width: 0 !important;
+      box-shadow: none;
+      -moz-box-shadow: none;
+      -webkit-box-shadow: none;
+  }
+
+  /* ESTILOS PARA INPUT DE CLAVE */
+
+  .rounded-pill-left {
+  border-top-left-radius: 50rem !important;
+  border-bottom-left-radius: 50rem !important;
+  }
+  .rounded-pill-right {
+  border-top-right-radius: 50rem !important;
+  border-bottom-right-radius: 50rem !important;
+  }
+
+  /* Another classes to use */
+  .rounded-t-l-0 {
+  border-top-left-radius: 0 !important;
+  }
+  .rounded-t-r-0 {
+  border-top-right-radius: 0 !important;
+  }
+  .rounded-b-l-0 {
+  border-bottom-left-radius: 0 !important;
+  }
+  .rounded-b-r-0 {
+  border-bottom-right-radius: 0 !important;
+  }
+  .rounded-x-l-0 {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  }
+  .rounded-x-r-0 {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  }
