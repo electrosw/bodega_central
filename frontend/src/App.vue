@@ -62,6 +62,7 @@
         <salida-bodega-component        v-if="menu[1].visible"/>
         <bodega-component               v-if="menu[2].visible"/>
         <informes-bodega-component      v-if="menu[3].visible"/>
+        <valorizacion-component         v-if="menu[4].visible"/>
 
       </div>
 
@@ -173,10 +174,11 @@ export default {
       nom_bodega            : '',
       barra                 : false, // VARIABLE QUE DETERMINA SI LA BARRA LATERAL ESTA OCULTA
       menu                  : [
-        {nombre:'Ingreso'   , visible: false, icono: '<i class="fas fa-fw mr-2 fa-box"></i>'        },
-        {nombre:'Salida'    , visible: false, icono: '<i class="fas fa-fw mr-2 fa-truck"></i>'      },
-        {nombre:'Bodega'    , visible: false, icono: '<i class="fas fa-fw mr-2 fa-warehouse"></i>'  },
-        {nombre:'Informes'  , visible: false, icono: '<i class="fas fa-fw mr-2 fa-file-alt"></i>' }
+        {nombre:'Ingreso'       , visible: false, icono: '<i class="fas fa-fw mr-2 fa-box"></i>'        },
+        {nombre:'Salida'        , visible: false, icono: '<i class="fas fa-fw mr-2 fa-truck"></i>'      },
+        {nombre:'Bodega'        , visible: false, icono: '<i class="fas fa-fw mr-2 fa-warehouse"></i>'  },
+        {nombre:'Informes'      , visible: false, icono: '<i class="fas fa-fw mr-2 fa-file-alt"></i>'   },
+        {nombre:'Valorizacion'  , visible: false, icono: '<i class="fas fa-fw mr-2 fa-dollar-sign"></i>'   }
       ],
       modal_cambiar_clave   : false,
       modal_cerrar_sesion   : false,
@@ -194,6 +196,7 @@ export default {
       this.cambiaVista('Ingreso');
     }
     this.ocultaBarra();
+    this.intervaloSesion = setInterval(this.validaSesion, 10000);
   },
 
   methods:{
@@ -212,6 +215,17 @@ export default {
       }else{
         return false;
       }
+    },
+
+    validaSesion(){
+      axios.get(base_url+'home/estadoSesion').then( resp => {
+        if(resp.status === 200){
+          var mensaje = resp.data;
+          if(mensaje.key != 1){
+            window.location.reload();
+          }
+        }
+      });
     },
 
     obtieneDatosUsuario(){

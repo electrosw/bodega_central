@@ -79,7 +79,6 @@ export default {
         {key: 'ari_cantidad'          , label: 'Cantidad'           , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ing_fecha_ingreso'     , label: 'Fecha Ingreso'      , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ing_despacho_estimado' , label: 'Despacho Estimado'  , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'ari_sucursal_destino'  , label: 'Sucursal Dest.'     , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ing_rack'              , label: 'Estante'            , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ing_id'                , label: 'N° Ingreso'         , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ing_orden_compra'      , label: 'OC'                 , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'}

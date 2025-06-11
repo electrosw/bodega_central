@@ -15,10 +15,10 @@
       <div class="row justify-content-center mt-4">
         <div class="col-xl-6 col-md-10 col-12">
           Ingresa orden de compra:
-          <b-form-input v-model="buscar_oc" class="mb-3"></b-form-input>
+          <b-form-input v-model="buscar_oc" @keyup.enter="listarOrdenCompra();" class="mb-3" size="sm"></b-form-input>
         </div>
         <div class="col-12 text-center">
-          <b-button :disabled="buscar_oc == ''" @click="listarOrdenCompra();" variant="primary" size="sm">ACEPTAR</b-button>
+          <b-button :disabled="buscar_oc == ''" @click="listarOrdenCompra();" variant="primary" size="sm"><i class="fas fa-fw fa-search mr-2"></i>BUSCAR</b-button>
         </div>
       </div>
     </b-card>
@@ -44,11 +44,14 @@
           <h6 v-if="nuevo_ingreso.mensaje != ''"><strong>Mensaje:</strong> {{ nuevo_ingreso.mensaje }}</h6>
 
           <b-table striped hover :items="nuevo_ingreso.articulos" :fields="columnas_articulos" :thead-tr-class="'text-center align-middle bg-dark text-white'">
+            <template v-slot:cell(codigo)="data">
+              {{ data.item.codigo +'-'+ data.item.ver }}
+            </template>
             <template v-slot:cell(saldo)="data">
               <span :class="{'badge badge-success badge-pill':data.value<=0, 'badge badge-warning badge-pill':data.value>0}">{{ data.value }}</span>
             </template>
             <template v-slot:cell(cant_recibida)="data">
-              <b-form-input size="sm" type="text" v-model="data.item.cant_recibida" :class="{'is-valid':validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0, 'is-invalid':!validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0}"></b-form-input>
+              <b-form-input size="sm" type="text" v-model="data.item.cant_recibida" :class="{'is-valid':validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0, 'is-invalid':!validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0}" @change="cambioCantidad();"></b-form-input>
             </template>
             <template v-slot:cell(estantes_usar)="data">
               <b-form-input size="sm" type="text" v-model="data.item.estantes_usar" @change="data.item.estantes = cambioEstantes(data.item.estantes, data.item.estantes_usar);" :disabled="!validaNumero(data.item.cant_recibida) || data.item.cant_recibida == 0" :class="{'is-valid':validaNumero(data.item.estantes_usar) && data.item.estantes_usar !=0 && data.item.cant_recibida != 0, 'is-invalid':(!validaNumero(data.item.estantes_usar) || data.item.estantes_usar == 0) && data.item.cant_recibida != 0}"></b-form-input>
@@ -59,23 +62,31 @@
                   {{ espacio.esp_estante+'-'+espacio.esp_seccion+'-'+espacio.esp_numero+' ('+espacio.esp_peso+'kg)' }}
                 </b-form-select-option>
               </b-form-select> -->
-              <div style="width: 300px!important;" class="container-fluid">
+              <div style="min-width: 300px!important;" class="container-fluid">
                 <div class="row p-0" v-for="(estante,index) in data.item.estantes" :key="'idx'+index">
                   <div class="col-4 p-0">
                     <b-form-input size="sm" type="text" v-model="estante.cantidad" :disabled="!validaNumero(data.item.cant_recibida) || data.item.cant_recibida == 0" :class="{'is-valid':validaNumero(estante.cantidad) && estante.cantidad != 0 && data.item.cant_recibida !=0, 'is-invalid':(!validaNumero(estante.cantidad) || estante.cantidad == 0 || !validaCantidadRecibida(data.item)) && data.item.cant_recibida != 0}"></b-form-input>
                   </div>
                   <div class="col-8 p-0">
-                    <v-select style="width: 100%!important;" class="form-control form-control-sm p-0 h-auto" :reduce="(espacio) => espacio.esp_id" label="esp_nombre" v-model="estante.estante" :clearable="true" :closeOnSelect="true" :options="espacios_disponibles" :disabled="!validaNumero(data.item.cant_recibida) || data.item.cant_recibida == 0" :class="{'is-invalid': estante.estante == 0 && validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0, 'is-valid': estante.estante != 0 && validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0}">
+                    <v-select style="width: 100%!important;" class="form-control form-control-sm p-0 h-auto" :reduce="(espacio) => espacio.esp_id" label="esp_nombre" v-model="estante.estante" :clearable="true" :closeOnSelect="true" :options="espacios_disponibles" :disabled="!validaNumero(data.item.cant_recibida) || data.item.cant_recibida == 0" :class="{'is-invalid': (estante.estante == 0 || estante.estante == null) && validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0, 'is-valid': estante.estante != 0 && estante.estante != null && validaNumero(data.item.cant_recibida) && data.item.cant_recibida != 0}">
                       <template v-slot:no-options="{ search, searching }">
                         <template v-if="searching">
                           SIN RESULTADOS PARA <em>{{ search }}</em>.
                         </template>
                         <em style="opacity: 0.5;" v-else>SIN OPCIONES PARA MOSTRAR.</em>
                       </template>
+                      <template v-slot:option="option">
+                        <div :class="{ 'disabled-option': !desactivaEstante(option) }" :disabled="!desactivaEstante(option)">
+                          {{ option.esp_nombre }}
+                        </div>
+                      </template>
                     </v-select>
                   </div>
                 </div>
               </div>
+            </template>
+            <template v-slot:cell(certificacion)="data">
+              <b-form-checkbox class="text-center" v-model="data.item.certificacion" name="check-button" switch v-b-tooltip.hover title="Requiere certificación."></b-form-checkbox>
             </template>
           </b-table>
           
@@ -89,25 +100,23 @@
 
     <b-modal v-model="modal_confirmar_oc" size="lg" title="CONFIRMAR" hide-footer no-close-on-backdrop>
       <div v-if="ingresando_datos_extra" class="w-100">
-        <h6 class="mb-3 font-weight-bold text-center">* campos obligatorios</h6>
+        <h6 class="mb-3 font-weight-bold text-center">* Campos obligatorios</h6>
 
-        <h6><strong>*</strong> Selecciona sucursal de destino:</h6>
-        <b-form-select size="sm" v-model="nuevo_ingreso.bodega_despacho" class="mb-3" :options="sucursales" :value-field="'suc_id'" :text-field="'suc_nombre'"></b-form-select>
         <h6><strong>*</strong> Fecha estimada de despacho:</h6>
         <b-form-datepicker size="sm" v-model="nuevo_ingreso.fecha_estimada_despacho" class="mb-3" :min="fecha_actual" placeholder="SELECCIONA FECHA" label-help="Selecciona un día." label-no-date-selected="-" label-next-month="SIGUIENTE MES" label-prev-month="MES ANTERIOR" label-prev-year="AÑO ANTERIOR" label-next-year="SIGUIENTE AÑO" label-current-month="MES ACTUAL" start-weekday="1"></b-form-datepicker>
 
-        <h6>Tipo documento asociado:</h6>
+        <h6><strong>*</strong> Tipo documento asociado:</h6>
         <b-form-select size="sm" v-model="nuevo_ingreso.tipo_doc_asociado" class="mb-3" :options="tipos_documentos"></b-form-select>
-        <h6>Documento asociado:</h6>
+        <h6><strong>*</strong> Documento asociado:</h6>
         <b-form-input size="sm" v-model="nuevo_ingreso.doc_asociado" class="mb-3"></b-form-input>
 
         <h6><strong>*</strong> Rut transportista:</h6>
         <b-form-input size="sm" v-model="nuevo_ingreso.rut_transportista" @input="nuevo_ingreso.rut_transportista = formateaRut(nuevo_ingreso.rut_transportista)" class="mb-3" :class="{'is-valid': nuevo_ingreso.rut_transportista != '' && verificarRut(nuevo_ingreso.rut_transportista), 'is-invalid': nuevo_ingreso.rut_transportista != '' && !verificarRut(nuevo_ingreso.rut_transportista)}"></b-form-input>
         <h6>Orden transporte:</h6>
         <b-form-input size="sm" v-model="nuevo_ingreso.orden_transporte" class="mb-3"></b-form-input>
-        <h6>Fecha transporte:</h6>
+        <h6>Fecha documento transporte:</h6>
         <b-form-datepicker size="sm" v-model="nuevo_ingreso.fecha_transporte" class="mb-3" placeholder="SELECCIONA FECHA" label-help="Selecciona un día." label-no-date-selected="-" label-next-month="SIGUIENTE MES" label-prev-month="MES ANTERIOR" label-prev-year="AÑO ANTERIOR" label-next-year="SIGUIENTE AÑO" label-current-month="MES ACTUAL" start-weekday="1"></b-form-datepicker>
-        <h6>Peso transporte:</h6>
+        <h6>Peso transporte(kg):</h6>
         <b-form-input size="sm" v-model="nuevo_ingreso.peso_transporte" class="mb-3"></b-form-input>
 
         <h6>Observación:</h6>
@@ -116,11 +125,11 @@
       </div>
       <div v-else class="w-100">
         <div class="container-fluid mb-3 card p-3">
-          <h6><strong>Confirma los siguente datos para el ingreso de bodega:</strong></h6>
+          <h6><strong>Confirma los siguentes datos para el ingreso de bodega:</strong></h6>
           <ul>
             <li v-show="articulo.cant_recibida > 0" v-for="articulo in nuevo_ingreso.articulos" :key="articulo.codigo">
               <div class="row">
-                <div class="col-2">{{ articulo.codigo }}</div>
+                <div class="col-2">{{ articulo.codigo+'-'+articulo.ver }}</div>
                 <div class="col-8 font-weight-bold">{{ articulo.nomart }}</div>
                 <div class="col-2 text-right">    
                   <span class="badge badge-dark badge-pill">
@@ -140,25 +149,34 @@
         </div>
         <div class="container-fluid card p-3">
           <div class="row">
-            <div class="col-5"><h6>Sucursal de destino</h6></div>
-            <div class="col-7"><h6 v-for="(bodega,index) in sucursales" :key="'suc'+index" v-show="bodega.suc_id==nuevo_ingreso.bodega_despacho">: {{bodega.suc_nombre}}</h6></div>
             <div class="col-5"><h6>Fecha estimada de despacho</h6></div>
             <div class="col-7"><h6>: {{ nuevo_ingreso.fecha_estimada_despacho.split('-')[2]+'-'+nuevo_ingreso.fecha_estimada_despacho.split('-')[1]+'-'+nuevo_ingreso.fecha_estimada_despacho.split('-')[0] }}</h6></div>
             <div v-if="nuevo_ingreso.tipo_doc_asociado != ''" class="col-5"><h6>Tipo documento asociado</h6></div>
             <div v-if="nuevo_ingreso.tipo_doc_asociado != ''" class="col-7"><h6 v-for="(doc,index) in tipos_documentos" :key="'tip'+index" v-show="doc.value==nuevo_ingreso.tipo_doc_asociado">: {{doc.text}}</h6></div>
             <div v-if="nuevo_ingreso.doc_asociado != ''" class="col-5"><h6>N° Documento asociado</h6></div>
             <div v-if="nuevo_ingreso.doc_asociado != ''" class="col-7"><h6>: {{nuevo_ingreso.doc_asociado}}</h6></div>
+            <div class="col-5"><h6>Rut Transportista</h6></div>
+            <div class="col-7"><h6>: {{nuevo_ingreso.rut_transportista}}</h6></div>
+            <div v-if="nuevo_ingreso.orden_transporte != ''" class="col-5"><h6>Orden de transporte</h6></div>
+            <div v-if="nuevo_ingreso.orden_transporte != ''" class="col-7"><h6>: {{nuevo_ingreso.orden_transporte}}</h6></div>
+            <div v-if="nuevo_ingreso.fecha_transporte != ''" class="col-5"><h6>Fecha documento transporte</h6></div>
+            <div v-if="nuevo_ingreso.fecha_transporte != ''" class="col-7"><h6>: {{nuevo_ingreso.fecha_transporte}}</h6></div>
+            <div v-if="nuevo_ingreso.peso_transporte != ''" class="col-5"><h6>Peso transporte</h6></div>
+            <div v-if="nuevo_ingreso.peso_transporte != ''" class="col-7"><h6>: {{nuevo_ingreso.peso_transporte}} kg.</h6></div>
+            <div v-if="nuevo_ingreso.observacion != ''" class="col-5"><h6>Observación</h6></div>
+            <div v-if="nuevo_ingreso.observacion != ''" class="col-7"><h6>: {{nuevo_ingreso.observacion}}</h6></div>
           </div>
         </div>
+        <b-alert show v-if="muestra_alerta" variant="warning" class="text-center mt-3"><strong><i class="fas fa-fw fa-exclamation-triangle mr-2"></i> {{msj_alerta}}</strong></b-alert>
       </div>
 
       <div v-if="ingresando_datos_extra" class="row mt-3 pt-3 border-top text-center">
         <div class="col"><b-button @click="modal_confirmar_oc=false;ingresando_datos_extra=true;" size="sm" variant="danger">CANCELAR</b-button></div>
-        <div class="col"><b-button :disabled="!validaCamposObligatorios()" @click="ingresando_datos_extra=false;" size="sm" variant="success">CONTINUAR</b-button></div>
+        <div class="col"><b-button :disabled="!validaCamposObligatorios()" @click="validarDocAsociado(); registro_iniciado=false;" size="sm" variant="success">CONTINUAR</b-button></div>
       </div>
       <div v-else class="row mt-3 pt-3 border-top text-center">
         <div class="col"><b-button @click="modal_confirmar_oc=false;ingresando_datos_extra=true;" size="sm" variant="danger">CANCELAR</b-button></div>
-        <div class="col"><b-button @click="registrarIngreso();" size="sm" variant="success">CONFIRMAR</b-button></div>
+        <div class="col"><b-button :disabled="registro_iniciado" @click="registrarIngreso();" size="sm" variant="success">CONFIRMAR</b-button></div>
       </div>
     </b-modal>
 
@@ -249,7 +267,7 @@
         <h6><strong>Doc. Asociado:</strong> <span v-for="doc in tipos_documentos" v-if="doc.value==detalle_ingreso.ing_tipo_documento">{{ doc.text + ' ' + detalle_ingreso.ing_documento}}</span></h6>
         <h6><strong>Despacho estimado:</strong> {{ detalle_ingreso.ing_despacho_estimado.split('-')[2]+'/'+detalle_ingreso.ing_despacho_estimado.split('-')[1]+'/'+detalle_ingreso.ing_despacho_estimado.split('-')[0] }}</h6>
         <h6><strong>Rut transportista:</strong> {{ detalle_ingreso.ing_rut_transportista+'-'+detalle_ingreso.ing_dv_transportista }}</h6>
-        <h6><strong>Peso de carga:</strong> {{ detalle_ingreso.ing_peso_transporte }}</h6>
+        <h6><strong>Peso de carga(kg):</strong> {{ detalle_ingreso.ing_peso_transporte }}</h6>
         <h6><strong>Observación:</strong> {{ detalle_ingreso.ing_observacion }}</h6>
       </div>
       <b-table striped hover :items="detalle_ingreso.articulos" :fields="columnas_detalle_ingreso" :thead-tr-class="'text-center align-middle bg-dark text-white'">
@@ -286,14 +304,15 @@ export default {
       fecha_actual          : '',
 
       columnas_articulos    : [
-        {key: 'codigo'        , label: 'SKU'                , sortable: true  , tdClass:'p-1', thClass:'p-1'},
-        {key: 'nomart'        , label: 'Articulo'           , sortable: true  , tdClass:'p-1', thClass:'p-1'},
-        {key: 'umed'          , label: 'U. Medida'          , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'cant'          , label: 'Cantidad comprada'  , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'saldo'         , label: 'Saldo pendiente'    , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'cant_recibida' , label: 'Cantidad recibida'  , sortable: true  , tdClass:'p-1', thClass:'p-1'},
-        {key: 'estantes_usar' , label: 'Estantes a usar'    , sortable: true  , tdClass:'p-1', thClass:'p-1'},
-        {key: 'estantes'      , label: 'Cantidad x Estante' , sortable: true  , tdClass:'p-1', thClass:'p-1'}
+        {key: 'codigo'        , label: 'Codigo'             , sortable: false  , tdClass:'p-1', thClass:'p-1'},
+        {key: 'nomart'        , label: 'Articulo'           , sortable: false  , tdClass:'p-1', thClass:'p-1'},
+        {key: 'umed'          , label: 'U. Medida'          , sortable: false  , tdClass:'p-1 text-center', thClass:'p-1'},
+        {key: 'cant'          , label: 'Cantidad comprada'  , sortable: false  , tdClass:'p-1 text-center', thClass:'p-1'},
+        {key: 'saldo'         , label: 'Saldo pendiente'    , sortable: false  , tdClass:'p-1 text-center', thClass:'p-1'},
+        {key: 'cant_recibida' , label: 'Cantidad recibida'  , sortable: false  , tdClass:'p-1', thClass:'p-1'},
+        {key: 'estantes_usar' , label: 'Estantes a usar'    , sortable: false  , tdClass:'p-1', thClass:'p-1'},
+        {key: 'estantes'      , label: 'Cantidad x Estante' , sortable: false  , tdClass:'p-1', thClass:'p-1'},
+        {key: 'certificacion' , label: 'Certificación'      , sortable: false  , tdClass:'p-1', thClass:'p-1'}
       ],
 
       nuevo_ingreso         : {
@@ -304,7 +323,6 @@ export default {
         oc                      :'', 
         articulos               :[], 
         fecha_estimada_despacho :'', 
-        bodega_despacho         :'', 
         doc_asociado            :'', 
         tipo_doc_asociado       :'', 
         rut_transportista       :'',
@@ -313,9 +331,11 @@ export default {
         peso_transporte         :'',
         observacion             :''
       },
-      buscar_oc             : '1133762',
+      buscar_oc             : '',
       modal_confirmar_oc    : false,
       ingresando_datos_extra: true,
+      muestra_alerta        : false,
+      msj_alerta            : '',
       formato_numero        : /^[0-9]+([.][0-9]*)?$/,
 
       modal_historial       : false,
@@ -330,7 +350,8 @@ export default {
         {text:'Fechas'          , value: 1},
         {text:'N° Ingreso'      , value: 2}
       ],
-      tipo_filtro_historial: 1,
+      tipo_filtro_historial : 1,
+      registro_iniciado     : false,
 
       columnas_historial: [
         {key: 'ing_id'                , label: 'N° Ingreso'         , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
@@ -364,6 +385,9 @@ export default {
   },
   methods:{
     listarOrdenCompra(){
+      if(this.buscar_oc == ''){
+        return;
+      }
       this.cargando_pagina = true;
       const datos = new URLSearchParams();
       datos.append('orden_compra', this.buscar_oc);
@@ -384,15 +408,14 @@ export default {
         else {
           alert('Falló la conexion con CGI interno.');
         }
-        console.log(resp.data);
         this.cargando_pagina      = false;
       }).catch(error =>{
-        console.log(error);
         this.cargando_pagina = false;
       });
     },
 
     limpiarIngreso(){
+      this.buscar_oc = '';
       this.nuevo_ingreso = {
         bodega                  :'', 
         fecha                   :'', 
@@ -401,7 +424,6 @@ export default {
         oc                      :'', 
         articulos               :[], 
         fecha_estimada_despacho :'', 
-        bodega_despacho         :'', 
         doc_asociado            :'', 
         tipo_doc_asociado       :'', 
         rut_transportista       :'',
@@ -413,7 +435,10 @@ export default {
     },
 
     validaCamposObligatorios(){
-      if(this.nuevo_ingreso.fecha_estimada_despacho == '' || this.nuevo_ingreso.bodega_despacho == '' || !this.verificarRut(this.nuevo_ingreso.rut_transportista)){
+      if( this.nuevo_ingreso.fecha_estimada_despacho  == '' || 
+          this.nuevo_ingreso.tipo_doc_asociado        == '' || 
+          this.nuevo_ingreso.doc_asociado             == '' || 
+          !this.verificarRut(this.nuevo_ingreso.rut_transportista)){
         return false;
       }
       else{
@@ -422,13 +447,32 @@ export default {
     },
 
     validarIngreso(){
-      var flag = true;
+      let resp           = true;
+      let cant_ingresada = false;
       this.nuevo_ingreso.articulos.forEach(articulo => {
-        if(!this.validaNumero(articulo.cant_recibida) || (this.validaNumero(articulo.cant_recibida) && articulo.cant_recibida != 0 && articulo.estante == 0)){
-          flag = false;
+        // VALIDACION DE CAMPOS DE INGRESO.
+        if(   
+            !this.validaNumero(articulo.cant_recibida) || 
+            (this.validaNumero(articulo.cant_recibida) && articulo.cant_recibida != 0 && (articulo.estantes_usar == 0 || articulo.estantes_usar == '' || articulo.estantes_usar == null) ) 
+          ){
+          resp = false;
+        }
+        if(this.validaNumero(articulo.cant_recibida) && articulo.cant_recibida != 0){
+          articulo.estantes.forEach(estante => {
+            if(
+                !this.validaNumero(estante.cantidad) ||
+                (this.validaNumero(estante.cantidad) && estante.cantidad != 0 && (estante.cantidad > articulo.cant_recibida)) ||
+                estante.estante == '' || estante.estante == null || estante.estante == 0
+              ){
+              resp = false;
+            }
+          });
+        }
+        if( this.validaNumero(articulo.cant_recibida) && articulo.cant_recibida != 0 ){ // valida que al menos un articulo tenga cantidad recibida
+          cant_ingresada = true;
         }
       });
-      return flag;
+      return resp && cant_ingresada;
     },
 
     validaCantidadRecibida(datos){
@@ -442,6 +486,15 @@ export default {
       else {
         return false;
       }
+    },
+
+    cambioCantidad(){
+      this.nuevo_ingreso.articulos.forEach(articulo => {
+        if(articulo.cant_recibida == 0){
+          articulo.estantes_usar = 0;
+          articulo.estantes = [{cantidad:0, estante:0}];
+        }
+      });
     },
 
     cambioEstantes(estantes, estantes_usar){
@@ -481,6 +534,7 @@ export default {
         this.filtrarEstantes();
         this.cargando_pagina      = false;
       }).catch(error =>{
+        alert('Error al listar espacios disponibles.');
         console.log(error);
         this.cargando_pagina = false;
       });
@@ -506,6 +560,7 @@ export default {
         this.sucursales       = resp.data;
         this.cargando_pagina  = false;
       }).catch(error =>{
+        alert('Error al listar sucursales.');
         console.log(error);
         this.cargando_pagina = false;
       });
@@ -520,6 +575,28 @@ export default {
       }
     }, */
 
+    validarDocAsociado(){
+      const datos = new URLSearchParams();
+      datos.append('doc', this.nuevo_ingreso.doc_asociado);
+      datos.append('tipo', this.nuevo_ingreso.tipo_doc_asociado);
+      axios.post(base_url+'bodega/validarDocAsociado', datos).then( resp => {
+        if(resp.data.key == 2){
+          this.muestra_alerta = true;
+          this.msj_alerta     = 'Este documento de proveedor asociado ya fue digitado anteriormente.';
+        }
+        else {
+          this.muestra_alerta = false;
+        }
+        this.ingresando_datos_extra = false;
+        this.cargando_pagina        = false;
+
+      }).catch(error =>{
+        alert('Error al validar el doc asociado.');
+        console.log(error);
+        this.cargando_pagina = false;
+      });
+    },
+
     registrarIngreso(){
       this.cargando_pagina  = true;
       let ingreso           = JSON.parse(JSON.stringify(this.nuevo_ingreso));
@@ -533,17 +610,18 @@ export default {
       const datos = new URLSearchParams();
       datos.append('ingreso', JSON.stringify(ingreso));
       axios.post(base_url+'bodega/registrarIngreso', datos).then( resp => {
-        console.log(resp.data);
         if(resp.data.key == 1){
           alert('Ingreso registrado correctamente.');
+          this.limpiarIngreso();
+          this.modal_confirmar_oc = false;
         }
         else {
           alert(resp.data.msj);
         }
         this.cargando_pagina   = false;
-
       }).catch(error =>{
         console.log(error);
+        alert('Error al registrar ingreso.');
         this.cargando_pagina = false;
       });
     },
@@ -581,6 +659,17 @@ export default {
       });
     },
 
+    desactivaEstante(espacio){
+      let resp = true;
+      this.nuevo_ingreso.articulos.forEach(articulo => {
+        articulo.estantes.forEach(estante => {
+          if(estante.estante == espacio.esp_id){
+            resp = false;
+          }
+        });
+      });
+      return resp;
+    },
 
     limpiarDatos(){
       this.nuevo_ingreso = {documento:'', tipo_documento:'', orden_compra:'', sucursal:'', fecha_despacho:'', peso:'', espacio:''};
@@ -668,4 +757,11 @@ export default {
 .vs__dropdown-toggle {
   padding: 0 0 1px!important;
 }
+
+.disabled-option {
+  color: red !important; /* O el color que prefieras para las opciones deshabilitadas */
+  pointer-events: none !important; /* Evita que se pueda hacer clic en la opción */
+}
 </style>
+
+<!-- 1178904 -->

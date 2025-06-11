@@ -1,6 +1,8 @@
 <template>
   <div class="pagina">
   <loader-component :cargando_pagina="cargando_pagina"/>
+  <biometria-component :modal_verificar_huella="modal_verificar_huella" @verificacion_correcta="verificacionCorrrecta" @cerrar_modal_biometria="modal_verificar_huella=false"/>
+
   <div class="container-fluid p-1 pagina2">
     
     <div class="row">
@@ -95,21 +97,46 @@
       <div v-if="!cargando_articulos_espacio" class="card alert-info p-2" v-for="articulo in articulos_espacio" :key="articulo.ari_id">
         <div class="container-fluid">
           <div class="row" style="cursor:pointer;" v-b-toggle="'collapse-'+articulo.ari_id">
-            <div class="col-10 font-weight-bold">{{ '['+articulo.ari_codigo+'] '+articulo.ari_nombre }}</div>
-            <div class="col-2 text-right"><span class="badge badge-primary badge-pill">{{ articulo.ari_cantidad+' '+articulo.ari_unidad_medida }}</span></div>
+            <div class="col-9 font-weight-bold">{{ articulo.ari_codigo+'-'+articulo.ari_ver+' | '+articulo.ari_nombre }}</div>
+            <div class="col-3 text-right">
+              <span class="badge badge-primary badge-pill mr-2">{{ articulo.ari_cantidad+' '+articulo.ari_unidad_medida }}</span>
+              <i v-if="articulo.ari_certificado == false" v-b-tooltip.hover title="Pendiente de certificación." class="text-danger fas fa-medal fa-fw"></i>
+              <i v-if="articulo.ari_certificado == true" v-b-tooltip.hover title="Certificado." class="text-success fas fa-medal fa-fw"></i>
+            </div>
             <!-- <b-button v-b-toggle="'collapse-'+articulo.ari_id" size="sm">Toggle Inner Collapse</b-button> -->
           </div>
           <b-collapse :id="'collapse-'+articulo.ari_id">
-            <div  class="row mt-2 pt-2 border-top">
+            <div  class="row mt-2 pt-2 pb-2 border-top border-bottom border-dark">
               <div class="col-4">Numero Ingreso: {{ articulo.ing_id }}</div>
               <div class="col-4">Orden de compra: {{ articulo.ing_orden_compra }}</div>
               <div class="col-4" v-if="articulo.ing_documento">Doc. asociado: <span class="text-lowercase" v-show="articulo.ing_tipo_documento==tipo.value" v-for="tipo in tipos_documentos" :key="'tip'+tipo.value">{{ tipo.text }}</span> {{ articulo.ing_documento }}</div>
               <!-- <div class="col-4">Doc. asociado: {{ articulo.ari_documento }}</div> -->
-              <div class="col-4">Fecha Ingreso: {{ articulo.ing_fecha_ingreso.split(' ')[0].split('-')[2]+'-'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[1]+'-'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[0]+' '+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[0]+':'+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[1] }}</div>
-              <div class="col-4">Destino: Bodega {{ articulo.ari_sucursal_destino }}</div>
-              <div class="col-4">Despacho estimado: {{ articulo.ing_despacho_estimado.split(' ')[0].split('-')[2]+'-'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[1]+'-'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[0]  }}</div>
-              <div class="col-12">Observacion: {{ articulo.ing_observacion }}</div>
+              <div class="col-4">Fecha Ingreso: {{ articulo.ing_fecha_ingreso.split(' ')[0].split('-')[2]+'/'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[1]+'/'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[0]+' '+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[0]+':'+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[1] }}</div>
+              <div class="col-4">Despacho estimado: {{ articulo.ing_despacho_estimado.split(' ')[0].split('-')[2]+'/'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[1]+'/'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[0]  }}</div>
               
+              <div v-if="articulo.ing_rut_transportista" class="col-4">Rut transportista: {{ articulo.ing_rut_transportista+'-'+articulo.ing_dv_transportista }}</div>
+              <div v-if="articulo.ing_orden_transporte" class="col-4">Peso transporte: {{ articulo.ing_orden_transporte }}</div>
+              <div v-if="articulo.ing_peso_transporte" class="col-4">Peso transporte: {{ articulo.ing_peso_transporte }}Kg.</div>
+              <div v-if="articulo.ing_observacion" class="col-12">Observacion: {{ articulo.ing_observacion }}</div>
+            </div>
+            <div v-if="articulo.ari_certificado != null" class="row mt-2">
+              <div class="col-12">
+                <h5><strong>Certificación:</strong></h5>
+                <p v-if="articulo.ari_certificado == true"> Articulo certificado. <i class="text-success fas fa-medal fa-fw ml-2"></i></p>
+                <p v-if="articulo.ari_certificado == false"> Articulo pendiente de certificar. <i class="text-danger fas fa-medal fa-fw ml-2"></i></p>
+              </div>
+              <div v-if="articulo.ari_certificado == true" class="col-12">
+                <h6><strong>Fecha registro:</strong> {{ 
+                  articulo.crt_fecha_hora.split(' ')[0].split('-')[2] +'-'+
+                  articulo.crt_fecha_hora.split(' ')[0].split('-')[1] +'-'+
+                  articulo.crt_fecha_hora.split(' ')[0].split('-')[0] +' '+ 
+                  articulo.crt_fecha_hora.split(' ')[1]}}</h6>
+                <h6><strong>Usuario:</strong> {{ articulo.crt_usuario }}</h6>
+              </div>
+              <div class="col-12 text-center">
+                <b-button v-if="articulo.ari_certificado == false" size="sm" variant="success" @click="muetraModalCertificado(articulo)">CERTIFICAR</b-button>
+                <b-button v-if="articulo.ari_certificado == true" size="sm" variant="outline-primary" @click="pdf_certificado=articulo.crt_archivo; modal_pdf=true;">VER CERTIFICADO</b-button>
+              </div>
             </div>
           </b-collapse>
         </div>
@@ -121,22 +148,20 @@
       <div v-if="!cargando_historial_espacio" class="card alert-dark p-2" v-for="articulo in historial_espacio" :key="articulo.ari_id">
         <div class="container-fluid">
           <div class="row border-bottom pb-2 mb-2">
-            <div class="col-10 font-weight-bold">{{ '['+articulo.ari_codigo+'] '+articulo.ari_nombre }}</div>
+            <div class="col-10 font-weight-bold">{{ articulo.ari_codigo+'-'+articulo.ari_ver+' | '+articulo.ari_nombre }}</div>
             <div class="col-2 text-right"><span class="badge badge-primary badge-pill">{{ articulo.ars_cantidad+' '+articulo.ari_unidad_medida }}</span></div>
           </div>
           <div class="row">
             <div class="col-4">Orden de compra: {{ articulo.ing_orden_compra }}</div>
             <div class="col-4">Doc. asociado: <span class="text-lowercase" v-show="articulo.ing_tipo_documento==tipo.value" v-for="tipo in tipos_documentos" :key="'tip'+tipo.value">{{ tipo.text }}</span> {{ articulo.ing_documento }}</div>
             <!-- <div class="col-4">Doc. asociado: {{ articulo.ari_documento }}</div> -->
-            <div class="col-4">Destino: Bodega {{ articulo.ari_sucursal_destino }}</div>
-            <div class="col-4">Ingreso: {{ articulo.ing_fecha_ingreso.split(' ')[0].split('-')[2]+'-'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[1]+'-'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[0]+' '+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[0]+':'+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[1] }}</div>
+            <div class="col-4">Destino: Bodega {{ articulo.sld_bodega_destino }}</div>
+            <div class="col-4">Ingreso: {{ articulo.ing_fecha_ingreso.split(' ')[0].split('-')[2]+'/'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[1]+'/'+articulo.ing_fecha_ingreso.split(' ')[0].split('-')[0]+' '+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[0]+':'+articulo.ing_fecha_ingreso.split(' ')[1].split(':')[1] }}</div>
            <!--  <div class="col-4">Despacho estimado: {{ articulo.ing_despacho_estimado.split(' ')[0].split('-')[2]+'-'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[1]+'-'+articulo.ing_despacho_estimado.split(' ')[0].split('-')[0]  }}</div> -->
-            <div class="col-4">Salida: {{ articulo.sld_fecha_salida.split(' ')[0].split('-')[2]+'-'+articulo.sld_fecha_salida.split(' ')[0].split('-')[1]+'-'+articulo.sld_fecha_salida.split(' ')[0].split('-')[0]+' '+articulo.sld_fecha_salida.split(' ')[1].split(':')[0]+':'+articulo.sld_fecha_salida.split(' ')[1].split(':')[1] }}</div>
+            <div class="col-4">Salida: {{ articulo.sld_fecha_salida.split(' ')[0].split('-')[2]+'/'+articulo.sld_fecha_salida.split(' ')[0].split('-')[1]+'/'+articulo.sld_fecha_salida.split(' ')[0].split('-')[0]+' '+articulo.sld_fecha_salida.split(' ')[1].split(':')[0]+':'+articulo.sld_fecha_salida.split(' ')[1].split(':')[1] }}</div>
           </div>
         </div>
       </div>
-
-
 
       <div class="row mt-3 pt-3 border-top">
         <div class="col text-center">
@@ -144,6 +169,22 @@
         </div>
       </div>
 
+    </b-modal>
+
+    <b-modal v-model="modal_certificado" title="Certificar articulo" size="lg" centered hide-footer no-close-on-backdrop>
+      <h6>Adjunte el archivo correspondiente al certificado:</h6>
+      <b-form-file size="sm" v-model="archivo_certificado" placeholder="Subir archivo" multiple="false" accept=".pdf" browse-text="CERTIFICADO"></b-form-file>
+      <p class="text-danger">Solo se permiten documentos en formato PDF</p>
+      <div class="row mt-5">
+        <div class="col-12 text-center">
+          <b-button size="sm" variant="danger" class="mr-2" @click="modal_certificado=false; archivo_certificado=''">CANCELAR</b-button>
+          <b-button size="sm" variant="success" :disabled="archivo_certificado==''" @click="modal_verificar_huella = true;">CERTIFICAR</b-button>
+        </div>
+      </div>
+    </b-modal>
+
+    <b-modal v-model="modal_pdf" title="Certificado" size="lg" centered hide-footer no-close-on-backdrop>
+      <iframe v-if="modal_pdf" :src="pdf_certificado" width="100%" height="600px"></iframe>
     </b-modal>
 
   </div>
@@ -193,6 +234,14 @@ export default {
         {value:39, text:'BOLETA'}, 
         {value:52, text:'GUIA DESPACHO'}
       ],
+
+      modal_certificado             : false,
+      modal_pdf                     : false,
+      articulo_seleccionado         : '',
+      archivo_certificado           : '',
+      pdf_certificado               : '',
+
+      modal_verificar_huella        : false,
     }
   },
   mounted(){
@@ -235,7 +284,52 @@ export default {
         console.log(error);
         this.cargando_historial_espacio = false;
       });
+    },
+
+    muetraModalCertificado(articulo){
+      this.articulo_seleccionado = articulo;
+      this.modal_certificado = true;
+    },
+
+    async certificarArticulo(){
+      this.cargando_pagina = true;
+      const file = this.archivo_certificado[0];
+      if(file) {
+        let base64 = await this.getFileBase64(file);
+        base64 = 'data:application/pdf;base64,'+base64;
+        const datos = new URLSearchParams();
+        datos.append('id_articulo', this.articulo_seleccionado.ari_id);
+        datos.append('archivo', base64);
+        axios.post(base_url+'bodega/certificarArticulo', datos).then( resp => {
+          this.cargando_pagina      = false;
+          this.modal_certificado    = false;
+          this.archivo_certificado  = '';
+          this.listarArticulosEspacio(this.espacio_seleccionado.esp_id);
+        }).catch(error =>{
+          console.log(error);
+          this.cargando_pagina = false;
+        });
+      }
+      else{
+        alert('Debe seleccionar un archivo');
+        return;
+      }
+    },
+
+    verificacionCorrrecta(funcion_ejecucion){
+      this.modal_verificar_huella = false;
+      this.certificarArticulo();
+    },
+
+    getFileBase64(file) {
+      return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result.split(',')[1]); // Base64 puro
+          reader.onerror = (error) => reject(error);
+      });
     }
+    
   }
 }
 

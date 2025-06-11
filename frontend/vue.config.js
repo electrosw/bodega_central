@@ -6,7 +6,7 @@ module.exports = {
     outputDir: '../public',
   
     indexPath: process.env.NODE_ENV === 'production'
-      ? '../application/views/home.php'
+      ? '../backend/views/home.php'
       : 'index.html',
     
     publicPath: process.env.NODE_ENV === 'production'

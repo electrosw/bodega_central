@@ -66,18 +66,30 @@
     <div class="row px-2">
       <div class="card w-100">
         <div class="card-header">
-          <h5>Ordenes de traspaso</h5>
+          <h5>Solicitudes de traspaso</h5>
           <div class="row justify-content-center mt-2">
             <div class="col-6 text-rigth">
               Filtrar por bodega:
-              <b-form-select @change="listarOrdenesTraspaso();" v-model="filtro_bodega" class="mb-3" :options="sucursales" :value-field="'suc_id'" :text-field="'suc_nombre'">
-                <b-form-select-option value="''">Todas</b-form-select-option>
+              <b-form-select @change="listarOrdenesTraspaso();" v-model="filtro_bodega" size="sm" class="mb-3" :options="sucursales" :value-field="'suc_id'" :text-field="'suc_nombre'">
+                <b-form-select-option :value="''" selected>TODAS</b-form-select-option>
               </b-form-select>
+            </div>
+            <div class="col-6">
+              Busqueda:
+              <div class="input-group input-group-sm">
+                <input v-model="filtro_busqueda" type="text" class="form-control form-control-sm h-auto" placeholder="BÚSQUEDA">
+                <div class="input-group-append">
+                  <button :disabled="filtro_busqueda==''" @click="filtro_busqueda=''" class="btn btn-sm btn-secondary">
+                    <i v-if="filtro_busqueda==''" class="fa-fw fas fa-search"></i>
+                    <i v-else class="fa-fw fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div class="card-content">
-          <b-table v-if="ordenes_traspaso.length > 0" striped hover :items="ordenes_traspaso" :fields="columnas_ordenes" :thead-tr-class="'text-center align-middle bg-dark text-white'">
+          <b-table v-if="ordenes_traspaso.length > 0" striped hover :items="ordenes_traspaso" :fields="columnas_ordenes" :filter="filtro_busqueda" :thead-tr-class="'text-center align-middle bg-dark text-white'">
             <!-- <template v-slot:cell(art_cantidad)="data">
               <span>{{ data.value+' '+data.item.art_unidad_medida.toLowerCase()}}</span>
             </template> -->
@@ -93,23 +105,36 @@
       </div>
     </div>
 
-    <b-modal title="Orden de traspaso" v-model="modal_ver_orden" size="xl" hide-footer no-close-on-backdrop>
+    <b-modal title="Solicitud de traspaso" v-model="modal_ver_orden" size="xl" hide-footer no-close-on-backdrop>
       <div v-if="orden_seleccionada != '' && orden_seleccionada.detalle">
-        <h6>Orden de traspaso: {{ orden_seleccionada.documento }}</h6>
-        <h6>Fecha: {{ orden_seleccionada.fecha }}</h6>
-        <h6>Bodega destino: {{ orden_seleccionada.bod+' - '+orden_seleccionada.nombod}}</h6>
-        <h6>Observacion: {{ orden_seleccionada.detalle.mensaje }}</h6>
-        <h6>Articulos:</h6>
+        <h6><strong>Solicitud de traspaso:</strong> {{ orden_seleccionada.documento }}</h6>
+        <h6><strong>Fecha: </strong>{{ orden_seleccionada.fecha }}</h6>
+        <h6><strong>Bodega destino: </strong>{{ orden_seleccionada.bod+' - '+orden_seleccionada.nombod}}</h6>
+        <h6><strong>Observacion: </strong>{{ orden_seleccionada.detalle.mensaje }}</h6>
+        <h6><strong>Articulos: </strong></h6>
         <b-table v-if="!armando_salida" striped hover :items="orden_seleccionada.detalle.codigos" :fields="columnas_articulos_orden" :thead-tr-class="'text-center align-middle bg-dark text-white'">
         </b-table>
         <b-table v-else striped hover :items="orden_seleccionada.detalle.codigos" :fields="columnas_articulos_orden2" :thead-tr-class="'text-center align-middle bg-dark text-white'">
           <template v-slot:cell(cant_salida)="data">
-            <b-form-input v-model="data.item.cant_salida" size="sm"></b-form-input>
+            <b-form-input v-if="data.item.estantes.length > 0" type="text" :class="{'is-invalid': !validaNumero(data.item.cant_salida) || parseInt(data.item.cant_salida) > parseInt(data.item.cant)}" v-model="data.item.cant_salida" size="sm"></b-form-input>
           </template>
           <template v-slot:cell(estante)="data">
-            <b-form-select v-model="data.item.articulo_seleccionado" size="sm">
-              <b-form-select-option v-for="estante in data.item.estantes" v-key="estante.esp_id+'esp'" v-text="'['+estante.esp_estante+'-'+estante.esp_seccion+'-'+estante.esp_numero+'] [ '+estante.articulo.ari_cantidad+' '+estante.articulo.ari_unidad_medida+', Bodega '+estante.articulo.ari_sucursal_destino+' ]'" :value="estante.ari_id"></b-form-select-option>
-            </b-form-select>
+            <div class="container-fluid">
+              <div class="row" v-for="(est, index) in data.item.estantes_seleccionados" :key="index+'est'">
+                <div class="col-5 pr-0">
+                  <b-form-input v-if="data.item.estantes.length > 0" type="text" :class="{'is-invalid': !validaNumero(est.cantidad) || !validaCantidadEstante(data.item)}" v-model="est.cantidad" @change="agregaEstante(); est.id_articulo_ingreso='';" @blur="agregaEstante();" @keyup.enter="agregaEstante();" size="sm"></b-form-input>
+                </div>
+                <div class="col-6 px-1">
+                  <h6 v-if="data.item.estantes.length == 0" class="text-danger mt-1">Sin Stock.</h6>
+                  <b-form-select v-else v-model="est.id_articulo_ingreso" size="sm" :class="{'is-invalid': !validaEstante(data.item)}">
+                    <b-form-select-option :disabled="!desactivaEstante(estante)" v-for="estante in data.item.estantes" v-key="estante.esp_id+'esp'" v-text="'['+estante.esp_estante+'-'+estante.esp_seccion+'-'+estante.esp_numero+'] [ '+estante.ari_cantidad+' '+estante.ari_unidad_medida+' ]'" :value="estante.ari_id"></b-form-select-option>
+                  </b-form-select>
+                </div>
+                <div class="col-1 ml-0 pl-0">
+                  <b-button v-if="index>0" size="sm" variant="danger" @click="data.item.estantes_seleccionados.splice(index, 1)">X</b-button>
+                </div>
+              </div>
+            </div>
           </template>
         </b-table>
         <h6 v-if="armando_salida">Observacion</h6>
@@ -155,8 +180,8 @@
         </div>
         <div v-if="tipo_filtro_historial == 3" class="row justify-content-center">
           <div class="col-6">
-            <h6>Ingresa el N° de la Orden de traspaso</h6>
-            <b-form-input size="sm" v-model="filtro_orden_traspaso" placeholder="orden de traspaso" ></b-form-input>
+            <h6>Ingresa el N° de la Solicitud de traspaso</h6>
+            <b-form-input size="sm" v-model="filtro_orden_traspaso" placeholder="Solicitud de traspaso" ></b-form-input>
           </div>
         </div>
         <div class="row text-center">
@@ -190,7 +215,7 @@
         <h6><strong>Fecha:</strong> {{ detalle_salida.sld_fecha_salida.split(' ')[0].split('-')[2]+'/'+detalle_salida.sld_fecha_salida.split(' ')[0].split('-')[1]+'/'+detalle_salida.sld_fecha_salida.split(' ')[0].split('-')[0]+' '+detalle_salida.sld_fecha_salida.split(' ')[1].split(':')[0]+':'+detalle_salida.sld_fecha_salida.split(' ')[1].split(':')[1] }}</h6>
         <h6><strong>Bodega destino:</strong> {{ detalle_salida.sld_bodega_destino }}</h6>
         <h6><strong>Observación:</strong> {{ detalle_salida.sld_observacion }}</h6>
-        <h6><strong>Orden de traspaso:</strong> {{ detalle_salida.sld_orden_traspaso }}</h6>
+        <h6><strong>Solicitud de traspaso:</strong> {{ detalle_salida.sld_orden_traspaso }}</h6>
       </div>
       <b-table striped hover :items="detalle_salida.articulos" :fields="columnas_detalle_salida" :thead-tr-class="'text-center align-middle bg-dark text-white'">
         <template v-slot:cell(ari_espacio)="data">
@@ -222,7 +247,8 @@ export default {
       ],
 
       filtro_bodega     : '',
-      ordenes_traspaso  :[],
+      filtro_busqueda   : '',
+      ordenes_traspaso  : [],
       columnas_ordenes  : [
         {key: 'documento' , label: 'Documento'      , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'fecha'     , label: 'Fecha'          , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
@@ -242,14 +268,14 @@ export default {
         {key: 'umed'          , label: 'U. Medida'              , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'cant'          , label: 'Cantidad Solicitada'    , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'cant_salida'   , label: 'Cantidad Salida'        , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'estante'       , label: 'Estante'                , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'}
+        {key: 'estante'       , label: 'Cantidad x Estante'     , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'}
       ],
       columnas_historial: [
         {key: 'sld_id'                , label: 'N° Salida'        , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'sld_fecha_salida'      , label: 'Fecha'            , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'sld_bodega_destino'    , label: 'Bodega destino'   , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'sld_observacion'       , label: 'Observacion'      , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
-        {key: 'sld_orden_traspaso'    , label: 'Orden traspaso'   , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
+        {key: 'sld_orden_traspaso'    , label: 'Solicitud traspaso'   , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'opcion'                , label: '-'                                  , tdClass:'p-1 text-center', thClass:'p-1'}
       ],
       orden_seleccionada    : '',
@@ -277,6 +303,7 @@ export default {
         {key: 'ars_cantidad'      , label: 'Cantidad'   , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'},
         {key: 'ari_espacio'       , label: 'Estante'    , sortable: true  , tdClass:'p-1 text-center', thClass:'p-1'}
       ],
+      soloNum : /^[0-9]*$/
     }
   },
   mounted(){
@@ -321,7 +348,7 @@ export default {
           this.ordenes_traspaso = resp.data.sotrasp;
         }
         else{
-          alert('Error al listar ordenes de traspaso.');
+          alert('Error al listar solicitudes de traspaso.');
         }
         this.cargando_pagina  = false;
       }).catch(error =>{
@@ -339,7 +366,7 @@ export default {
           this.orden_seleccionada.detalle = resp.data;
         }
         else{
-          alert('Error al listar ordenes de traspaso.');
+          alert('Error al listar solicitud de traspaso.');
         }
         this.cargando_pagina  = false;
       }).catch(error =>{
@@ -384,11 +411,95 @@ export default {
     validaDatos(){
       var resp = true;
       this.orden_seleccionada.detalle.codigos.forEach(codigo => {
-        if(codigo.cant_salida <= 0 || codigo.cant_salida == '' || codigo.articulo_seleccionado == ''){
+        if(parseInt(codigo.cant_salida) <= 0 || codigo.cant_salida == '' || parseInt(codigo.cant_salida) > parseInt(codigo.cant) ){
           resp = false;
         }
+        let sumaEstantes = 0;
+        codigo.estantes_seleccionados.forEach(estante => {
+          sumaEstantes += parseInt(estante.cantidad);
+          if(estante.cantidad <= 0 || estante.cantidad == '' || estante.id_articulo_ingreso == '' || parseInt(estante.cantidad) > parseInt(codigo.cant)){
+            resp = false;
+          }
+        });
+        if(parseInt(sumaEstantes) > parseInt(codigo.cant_salida)){
+          resp = false;
+        }
+        codigo.estantes_seleccionados.forEach(estante_seleccionado => {
+          codigo.estantes.forEach(estante_disponible => {
+            if(estante_seleccionado.id_articulo_ingreso == estante_disponible.ari_id){            
+              if(parseInt(estante_seleccionado.cantidad) > parseInt(estante_disponible.ari_cantidad)){
+                resp = false;
+              }
+            }
+          });
+        });
+          
       });
       return resp;
+    },
+
+    validaNumero(numero){
+      return this.soloNum.test(numero);
+    },
+
+    validaEstante(codigo){
+      let resp = true;
+      codigo.estantes_seleccionados.forEach(estante_seleccionado => {
+        codigo.estantes.forEach(estante_disponible => {
+          if(estante_seleccionado.id_articulo_ingreso == estante_disponible.ari_id){            
+            if(parseInt(estante_seleccionado.cantidad) > parseInt(estante_disponible.ari_cantidad)){
+              resp = false;
+            }
+          }
+        });
+      });
+      return resp;
+    },
+
+    validaCantidadEstante(codigo){
+      let resp = true;
+      let suma = 0;
+      codigo.estantes_seleccionados.forEach(estante_seleccionado => {
+        suma += parseInt(estante_seleccionado.cantidad);
+      });
+      if(suma > parseInt(codigo.cant_salida)){
+        resp = false;
+      }
+      return resp;
+    },
+
+    desactivaEstante(estante){
+      let resp = true;
+      this.orden_seleccionada.detalle.codigos.forEach(codigo => {
+        codigo.estantes_seleccionados.forEach(estante_seleccionado => {
+          if(estante_seleccionado.id_articulo_ingreso == estante.ari_id){
+            resp = false;
+          }
+        });
+      }); 
+      return resp;
+    },
+
+    agregaEstante(){
+      let flagCero = false;
+      this.orden_seleccionada.detalle.codigos.forEach(codigo => {
+        let sumaArticulos = 0;
+        codigo.estantes_seleccionados.forEach(estante => {
+          sumaArticulos += parseInt(estante.cantidad);
+          if(parseInt(estante.cantidad) == 0){
+            flagCero = true;
+          }
+        });
+        if(sumaArticulos < parseInt(codigo.cant_salida) && !flagCero){
+          codigo.estantes_seleccionados.push({ id_articulo_ingreso: '', cantidad: 0 });
+        }
+        if(sumaArticulos > parseInt(codigo.cant)){
+          codigo.estantes_seleccionados.pop();
+          for(let i=codigo.estantes_seleccionados.length; i>sumaArticulos; i--){
+            codigo.estantes_seleccionados.pop();
+          }
+        }
+      });
     },
 
     registrarSalida(){
@@ -398,6 +509,8 @@ export default {
       axios.post(base_url+'bodega/registrarSalida', datos).then( resp => {
         if(resp.data.key == 1){
           alert('Salida registrada correctamente.');
+          this.modal_ver_orden = false;
+          this.listarOrdenesTraspaso();
         }
         else {
           alert(resp.data.msj);

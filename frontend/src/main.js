@@ -45,14 +45,20 @@ document.title = 'Bodega Central';      // CAMBIAR AL NOMBRE QUE CORRESPONDA LA 
 /* LOADER DE CARGA */
 Vue.component('loader-component'                , require('./components/otros/Loader.vue'           ).default);
 
+/* VERIFICACION BIOMETRICA */
+Vue.component('biometria-component'             , require('./components/otros/Biometria.vue'        ).default);
+
 /* SECCION DE BODEGA */
 Vue.component('bodega-component'                , require('./components/bodega/Bodega.vue'          ).default);
 Vue.component('ingreso-bodega-component'        , require('./components/bodega/Ingreso.vue'         ).default);
 Vue.component('salida-bodega-component'         , require('./components/bodega/Salida.vue'          ).default);
 Vue.component('informes-bodega-component'       , require('./components/bodega/Informes.vue'        ).default);
 
-/* SECCION DE USUARIOS */
-Vue.component('usuarios-component'              , require('./components/usuarios/Usuarios.vue'      ).default);
+/* SECCION DE VALORIZACION */
+Vue.component('valorizacion-component'          , require('./components/valorizacion/Valorizacion.vue'          ).default);
+Vue.component('nueva-valorizacion-component'    , require('./components/valorizacion/Nueva_Valorizacion.vue'    ).default);
+Vue.component('ver-valorizacion-component'      , require('./components/valorizacion/Ver_Valorizacion.vue'      ).default);
+Vue.component('lista-valorizaciones-component'  , require('./components/valorizacion/Lista_Valorizaciones.vue'  ).default);
 
 
 /*OTROS COMPONENTES*/
